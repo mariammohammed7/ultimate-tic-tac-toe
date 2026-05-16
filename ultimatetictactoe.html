@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Tic Tac Toe</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #1a1a2e;
+    --bg-mid: #16213e;
+    --bg-board: #0f3460;
+    --bg-active: #1a4a3a;
+    --x-color: #38bdf8;
+    --o-color: #e879f9;
+    --text: #e0e0e0;
+    --accent: #00d4ff;
+    --won-draw: #444;
+    --cell-bg: #16213e;
+    --btn-reset: #ff006e;
+    --btn-instr: #8338ec;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 10px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(0,212,255,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(232,121,249,0.05) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 400;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 12px;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+
+  #status-bar {
+    background: var(--bg-mid);
+    border-radius: 8px;
+    padding: 10px 24px;
+    margin-bottom: 16px;
+    min-width: 300px;
+    text-align: center;
+  }
+
+  #status-label {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(1rem, 3vw, 1.3rem);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    transition: color 0.3s;
+  }
+
+  #game-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background: var(--bg-deep);
+    padding: 8px;
+    border-radius: 12px;
+    border: 2px solid rgba(0,212,255,0.2);
+  }
+
+  .small-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    background: var(--bg-board);
+    padding: 8px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    min-width: 130px;
+    min-height: 130px;
+  }
+
+  .small-board.active {
+    background: var(--bg-active);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(0,212,255,0.3);
+  }
+
+  .small-board.won-x {
+    background: rgba(56,189,248,0.1);
+    border-color: var(--x-color);
+  }
+
+  .small-board.won-o {
+    background: rgba(232,121,249,0.1);
+    border-color: var(--o-color);
+  }
+
+  .small-board.won-draw {
+    background: rgba(80,80,80,0.2);
+    border-color: var(--won-draw);
+  }
+
+  .cell {
+    background: var(--cell-bg);
+    border: none;
+    border-radius: 5px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 400;
+    color: white;
+    cursor: pointer;
+    aspect-ratio: 1;
+    width: 100%;
+    transition: background 0.15s, transform 0.1s;
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  .cell:hover:not(:disabled) {
+    background: #253a5e;
+    transform: scale(1.05);
+  }
+
+  .cell:disabled {
+    cursor: not-allowed;
+  }
+
+  .cell.x { color: var(--x-color); }
+  .cell.o { color: var(--o-color); }
+
+  .board-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(4rem, 10vw, 7rem);
+    font-weight: 400;
+    pointer-events: none;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 2;
+  }
+
+  .board-overlay.x { color: var(--x-color); text-shadow: 0 0 20px var(--x-color); }
+  .board-overlay.o { color: var(--o-color); text-shadow: 0 0 20px var(--o-color); }
+  .board-overlay.draw { color: #888; font-size: clamp(1.5rem, 4vw, 2.5rem); letter-spacing: 0.05em; }
+
+  @keyframes popIn {
+    from { transform: scale(0) rotate(-10deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+  }
+
+  #controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .btn {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+  .btn:active { transform: translateY(0); }
+
+  #reset-btn { background: var(--btn-reset); }
+  #instr-btn { background: var(--btn-instr); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-mid);
+    border: 2px solid var(--accent);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 0 40px rgba(0,212,255,0.2);
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal h2 {
+    font-family: 'Bebas Neue', cursive;
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-size: 1.6rem;
+    letter-spacing: 0.1em;
+  }
+  }
+
+  .modal p, .modal li {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #ccc;
+    margin-bottom: 8px;
+  }
+
+  .modal ol { padding-left: 20px; }
+
+  .modal-close {
+    margin-top: 20px;
+    background: var(--btn-instr);
+    width: 100%;
+  }
+
+  /* Game over banner */
+  #game-over-banner {
+    display: none;
+    margin-top: 12px;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-align: center;
+    animation: popIn 0.4s ease;
+    border: 2px solid;
+  }
+
+  #game-over-banner.x-wins {
+    background: rgba(56,189,248,0.15);
+    border-color: var(--x-color);
+    color: var(--x-color);
+  }
+
+  #game-over-banner.o-wins {
+    background: rgba(232,121,249,0.15);
+    border-color: var(--o-color);
+    color: var(--o-color);
+  }
+
+  #game-over-banner.draw {
+    background: rgba(100,100,100,0.15);
+    border-color: #888;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<h1>ULTIMATE TIC TAC TOE</h1>
+
+<div id="status-bar">
+  <div id="status-label">Loading...</div>
+</div>
+
+<div id="game-container"></div>
+
+<div id="game-over-banner"></div>
+
+<div id="controls">
+  <button class="btn" id="reset-btn" onclick="resetGame()">RESET</button>
+  <button class="btn" id="instr-btn" onclick="openModal()">HOW TO PLAY</button>
+</div>
+
+<!-- Instructions Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>HOW TO PLAY</h2>
+    <ol>
+      <li>The game is a large 3×3 grid, each cell containing a smaller 3×3 Tic-Tac-Toe board.</li>
+      <li>Your move determines where your opponent must play next. Play in the top-right cell → opponent plays in the top-right small board.</li>
+      <li>If the target small board is already won or full, the opponent can play anywhere.</li>
+      <li>Win a small board by getting 3 in a row (horizontally, vertically, or diagonally).</li>
+      <li>Win the game by winning three small boards in a row on the big grid.</li>
+    </ol>
+    <button class="btn modal-close" onclick="closeModal()">GOT IT</button>
+  </div>
+</div>
+
+<script>
+  // ── Game State ──────────────────────────────────────────────
+  let board = [];
+  let smallBoardWinners = [];
+  let currentPlayer = 'X';
+  let activeSmallBoard = null;
+  let gameOver = false;
+  let gameWinner = null;
+
+  // ── Init ─────────────────────────────────────────────────────
+  function initState() {
+    board = Array.from({length: 9}, () => Array(9).fill(null));
+    smallBoardWinners = Array(9).fill(null);
+    currentPlayer = 'X';
+    activeSmallBoard = null;
+    gameOver = false;
+    gameWinner = null;
+  }
+
+  function buildUI() {
+    const container = document.getElementById('game-container');
+    container.innerHTML = '';
+
+    for (let big = 0; big < 9; big++) {
+      const boardDiv = document.createElement('div');
+      boardDiv.className = 'small-board';
+      boardDiv.id = `board-${big}`;
+
+      for (let cell = 0; cell < 9; cell++) {
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        btn.id = `cell-${big}-${cell}`;
+        btn.onclick = () => onCellClick(big, cell);
+        boardDiv.appendChild(btn);
+      }
+
+      container.appendChild(boardDiv);
+    }
+  }
+
+  // ── Click Handler ─────────────────────────────────────────────
+  function onCellClick(bigIdx, cellIdx) {
+    if (gameOver) return;
+
+    if (!isValidMove(bigIdx, cellIdx)) {
+      flashStatus('Invalid move!', '#ff6b6b');
+      return;
+    }
+
+    applyMove(bigIdx, cellIdx);
+
+    const smallWinner = checkSmallBoard(bigIdx);
+    if (smallWinner) {
+      smallBoardWinners[bigIdx] = smallWinner;
+      renderSmallBoardOverlay(bigIdx, smallWinner);
+    }
+
+    const [bigWinner] = checkBigBoard();
+    if (bigWinner) {
+      gameOver = true;
+      gameWinner = bigWinner;
+      showGameOver(bigWinner);
+      updateStatus();
+      return;
+    }
+
+    // Next active board
+    activeSmallBoard = smallBoardWinners[cellIdx] == null ? cellIdx : null;
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    updateDisplay();
+  }
+
+  function isValidMove(bigIdx, cellIdx) {
+    if (board[bigIdx][cellIdx] !== null) return false;
+    if (smallBoardWinners[bigIdx] !== null) return false;
+    if (activeSmallBoard !== null && bigIdx !== activeSmallBoard) return false;
+    return true;
+  }
+
+  function applyMove(bigIdx, cellIdx) {
+    board[bigIdx][cellIdx] = currentPlayer;
+    const btn = document.getElementById(`cell-${bigIdx}-${cellIdx}`);
+    btn.textContent = currentPlayer;
+    btn.className = `cell ${currentPlayer.toLowerCase()}`;
+    btn.disabled = true;
+  }
+
+  // ── Win Checks ────────────────────────────────────────────────
+  function checkSmallBoard(idx) {
+    const c = board[idx];
+    const lines = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    for (const [a,b,cc] of lines) {
+      if (c[a] && c[a] === c[b] && c[a] === c[cc]) return c[a];
+    }
+    if (c.every(v => v !== null)) return 'Draw';
+    return null;
+  }
+
+  function checkBigBoard() {
+    const w = smallBoardWinners;
+    const lines = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    for (const [a,b,c] of lines) {
+      if (w[a] && w[a] !== 'Draw' && w[a] === w[b] && w[a] === w[c]) return [w[a]];
+    }
+    if (w.every(v => v !== null)) return ['Draw'];
+    return [null];
+  }
+
+  // ── Display ───────────────────────────────────────────────────
+  function renderSmallBoardOverlay(bigIdx, winner) {
+    const boardDiv = document.getElementById(`board-${bigIdx}`);
+
+    // Disable all cells
+    for (let cell = 0; cell < 9; cell++) {
+      const btn = document.getElementById(`cell-${bigIdx}-${cell}`);
+      btn.disabled = true;
+    }
+
+    // Add overlay
+    const overlay = document.createElement('div');
+    overlay.className = `board-overlay ${winner === 'Draw' ? 'draw' : winner.toLowerCase()}`;
+    overlay.textContent = winner === 'Draw' ? '—' : winner;
+    boardDiv.appendChild(overlay);
+
+    // Style board frame
+    boardDiv.classList.remove('active');
+    if (winner === 'Draw') boardDiv.classList.add('won-draw');
+    else boardDiv.classList.add(`won-${winner.toLowerCase()}`);
+  }
+
+  function updateDisplay() {
+    for (let i = 0; i < 9; i++) {
+      const boardDiv = document.getElementById(`board-${i}`);
+      boardDiv.classList.remove('active');
+
+      if (smallBoardWinners[i] !== null) continue;
+
+      if (activeSmallBoard === null || activeSmallBoard === i) {
+        boardDiv.classList.add('active');
+      }
+    }
+    updateStatus();
+  }
+
+  function updateStatus() {
+    const label = document.getElementById('status-label');
+    if (gameOver) {
+      label.style.color = '#ff00ff';
+      label.textContent = gameWinner === 'Draw'
+        ? "IT'S A DRAW!"
+        : `PLAYER ${gameWinner} WINS THE GAME!`;
+      return;
+    }
+
+    const color = currentPlayer === 'X' ? '#38bdf8' : '#e879f9';
+    label.style.color = color;
+    label.textContent = activeSmallBoard !== null
+      ? `Player ${currentPlayer} — Play in Board ${activeSmallBoard + 1}`
+      : `Player ${currentPlayer} — Play Anywhere!`;
+  }
+
+  function flashStatus(msg, color) {
+    const label = document.getElementById('status-label');
+    const prev = label.textContent;
+    const prevColor = label.style.color;
+    label.textContent = msg;
+    label.style.color = color;
+    setTimeout(() => {
+      label.textContent = prev;
+      label.style.color = prevColor;
+    }, 1000);
+  }
+
+  function showGameOver(winner) {
+    const banner = document.getElementById('game-over-banner');
+    banner.style.display = 'block';
+    if (winner === 'Draw') {
+      banner.className = 'draw';
+      banner.textContent = "IT'S A DRAW!";
+    } else if (winner === 'X') {
+      banner.className = 'x-wins';
+      banner.textContent = 'PLAYER X WINS!';
+    } else {
+      banner.className = 'o-wins';
+      banner.textContent = 'PLAYER O WINS!';
+    }
+  }
+
+  // ── Reset ─────────────────────────────────────────────────────
+  function resetGame() {
+    initState();
+    buildUI();
+    document.getElementById('game-over-banner').style.display = 'none';
+    updateDisplay();
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ── Start ─────────────────────────────────────────────────────
+  initState();
+  buildUI();
+  updateDisplay();
+</script>
+</body>
+</html>
